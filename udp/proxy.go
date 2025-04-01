@@ -11,6 +11,7 @@ import (
 
 // Proxy 表示UDP代理
 type Proxy struct {
+	proxyID    string
 	listenAddr string
 	targetAddr string
 	bufferSize int
@@ -18,8 +19,9 @@ type Proxy struct {
 }
 
 // NewProxy 创建一个新的UDP代理
-func NewProxy(listenAddr, targetAddr string, bufferSize int, timeout time.Duration) *Proxy {
+func NewProxy(proxyID, listenAddr, targetAddr string, bufferSize int, timeout time.Duration) *Proxy {
 	return &Proxy{
+		proxyID:    proxyID,
 		listenAddr: listenAddr,
 		targetAddr: targetAddr,
 		bufferSize: bufferSize,
@@ -41,7 +43,7 @@ func (p *Proxy) Start(ctx context.Context) error {
 	}
 	defer conn.Close()
 
-	log.Printf("UDP转发已启动: %s -> %s\n", p.listenAddr, p.targetAddr)
+	log.Printf("[%s] UDP转发已启动: %s -> %s\n", p.proxyID, p.listenAddr, p.targetAddr)
 
 	// 使用map存储UDP会话
 	sessions := &sync.Map{}
@@ -67,7 +69,7 @@ func (p *Proxy) Start(ctx context.Context) error {
 			case <-ctx.Done():
 				return nil
 			default:
-				log.Printf("UDP读取错误: %v", err)
+				log.Printf("[%s] UDP读取错误: %v", p.proxyID, err)
 				continue
 			}
 		}
@@ -81,9 +83,10 @@ func (p *Proxy) Start(ctx context.Context) error {
 		// 查找或创建会话
 		v, ok := sessions.Load(clientAddrStr)
 		if !ok {
+			// 使用客户端地址作为会话 ID
 			newSession, err := NewSession(ctx, conn, clientAddr, p.targetAddr, sessions, clientAddrStr, p.bufferSize, p.timeout)
 			if err != nil {
-				log.Printf("创建UDP会话失败: %v", err)
+				log.Printf("[%s] 创建UDP会话失败: %v", p.proxyID, err)
 				continue
 			}
 			sessions.Store(clientAddrStr, newSession)

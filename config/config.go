@@ -15,41 +15,53 @@ const DefaultConfigFile = "config.yaml"
 
 // Config 包含应用程序的所有配置
 type Config struct {
-	TCP TCPConfig `yaml:"tcp"`
-	UDP UDPConfig `yaml:"udp"`
+	TCP []TCPConfig `yaml:"tcp"`
+	UDP []UDPConfig `yaml:"udp"`
 }
 
 // TCPConfig TCP代理的配置
 type TCPConfig struct {
-	Enabled    bool   `yaml:"enabled"`
-	ListenAddr string `yaml:"listen_addr"`
-	TargetAddr string `yaml:"target_addr"`
+	Enabled     bool   `yaml:"enabled"`
+	ListenIP    string `yaml:"listen_ip"`    // 修改为监听IP
+	ListenPorts string `yaml:"listen_ports"` // 端口范围，例如 "8080-8085" 或 "8080,8081,8082"
+	TargetIP    string `yaml:"target_ip"`    // 修改为目标IP
+	TargetPorts string `yaml:"target_ports"` // 目标端口范围
 }
 
 // UDPConfig UDP代理的配置
 type UDPConfig struct {
-	Enabled    bool          `yaml:"enabled"`
-	ListenAddr string        `yaml:"listen_addr"`
-	TargetAddr string        `yaml:"target_addr"`
-	BufferSize int           `yaml:"buffer_size"`
-	Timeout    time.Duration `yaml:"timeout"`
+	Enabled     bool          `yaml:"enabled"`
+	ListenIP    string        `yaml:"listen_ip"`    // 修改为监听IP
+	ListenPorts string        `yaml:"listen_ports"` // 端口范围
+	TargetIP    string        `yaml:"target_ip"`    // 修改为目标IP
+	TargetPorts string        `yaml:"target_ports"` // 目标端口范围
+	BufferSize  int           `yaml:"buffer_size"`
+	Timeout     time.Duration `yaml:"timeout"`
 }
 
 // LoadConfig 从指定文件路径加载配置
 func LoadConfig(configPath string) (*Config, error) {
 	// 默认配置
 	config := &Config{
-		TCP: TCPConfig{
-			Enabled:    true,
-			ListenAddr: "0.0.0.0:8080",
-			TargetAddr: "[::1]:8081",
+		TCP: []TCPConfig{
+			{
+				Enabled:     true,
+				ListenIP:    "0.0.0.0",
+				ListenPorts: "8080-8085",
+				TargetIP:    "::1",
+				TargetPorts: "9080-9085",
+			},
 		},
-		UDP: UDPConfig{
-			Enabled:    true,
-			ListenAddr: "0.0.0.0:8080",
-			TargetAddr: "[::1]:8081",
-			BufferSize: 4096,
-			Timeout:    3 * time.Minute,
+		UDP: []UDPConfig{
+			{
+				Enabled:     true,
+				ListenIP:    "0.0.0.0",
+				ListenPorts: "8080-8085",
+				TargetIP:    "::1",
+				TargetPorts: "9080-9085",
+				BufferSize:  4096,
+				Timeout:     3 * time.Minute,
+			},
 		},
 	}
 
@@ -101,17 +113,41 @@ func LoadConfig(configPath string) (*Config, error) {
 // SaveDefaultConfig 保存默认配置到文件
 func SaveDefaultConfig(filePath string) error {
 	config := &Config{
-		TCP: TCPConfig{
-			Enabled:    true,
-			ListenAddr: "0.0.0.0:8080",
-			TargetAddr: "[::1]:8081",
+		TCP: []TCPConfig{
+			{
+				Enabled:     true,
+				ListenIP:    "0.0.0.0",
+				ListenPorts: "8080-8085", // 端口范围示例
+				TargetIP:    "::1",
+				TargetPorts: "9080-9085",
+			},
+			{
+				Enabled:     false,
+				ListenIP:    "0.0.0.0",
+				ListenPorts: "8090,8091,8092", // 逗号分隔的端口列表示例
+				TargetIP:    "::1",
+				TargetPorts: "9090,9091,9092",
+			},
 		},
-		UDP: UDPConfig{
-			Enabled:    true,
-			ListenAddr: "0.0.0.0:8080",
-			TargetAddr: "[::1]:8081",
-			BufferSize: 4096,
-			Timeout:    3 * time.Minute,
+		UDP: []UDPConfig{
+			{
+				Enabled:     true,
+				ListenIP:    "0.0.0.0",
+				ListenPorts: "8080-8085",
+				TargetIP:    "::1",
+				TargetPorts: "9080-9085",
+				BufferSize:  4096,
+				Timeout:     3 * time.Minute,
+			},
+			{
+				Enabled:     false,
+				ListenIP:    "0.0.0.0",
+				ListenPorts: "8090,8091,8092",
+				TargetIP:    "::1",
+				TargetPorts: "9090,9091,9092",
+				BufferSize:  4096,
+				Timeout:     3 * time.Minute,
+			},
 		},
 	}
 
