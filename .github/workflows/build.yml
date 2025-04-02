@@ -38,13 +38,6 @@ jobs:
 
           go build -v -o "${OUTPUT_NAME}" -ldflags="-s -w" .
 
-          # 打包
-          if [ "${{ matrix.goos }}" = "windows" ]; then
-            zip -r "${OUTPUT_NAME}.zip" "${OUTPUT_NAME}"
-          else
-            tar -czvf "${OUTPUT_NAME}.tar.gz" "${OUTPUT_NAME}"
-          fi
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:

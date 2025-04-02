@@ -15,54 +15,35 @@ const DefaultConfigFile = "config.yaml"
 
 // Config 包含应用程序的所有配置
 type Config struct {
-	TCP []TCPConfig `yaml:"tcp"`
-	UDP []UDPConfig `yaml:"udp"`
+	Forwards []ForwardConfig `yaml:"forwards"`
 }
 
-// TCPConfig TCP代理的配置
-type TCPConfig struct {
-	Name        string `yaml:"name"`
-	Enabled     bool   `yaml:"enabled"`
-	ListenIP    string `yaml:"listen_ip"`
-	ListenPorts string `yaml:"listen_ports"`
-	TargetIP    string `yaml:"target_ip"`
-	TargetPorts string `yaml:"target_ports"`
-}
-
-// UDPConfig UDP代理的配置
-type UDPConfig struct {
+// ForwardConfig 转发规则配置
+type ForwardConfig struct {
 	Name        string        `yaml:"name"`
 	Enabled     bool          `yaml:"enabled"`
+	Protocol    []string      `yaml:"protocol"`
 	ListenIP    string        `yaml:"listen_ip"`
-	ListenPorts string        `yaml:"listen_ports"`
+	ListenPorts []string      `yaml:"listen_ports"`
 	TargetIP    string        `yaml:"target_ip"`
-	TargetPorts string        `yaml:"target_ports"`
-	BufferSize  int           `yaml:"buffer_size"`
-	Timeout     time.Duration `yaml:"timeout"`
+	TargetPorts []string      `yaml:"target_ports"`
+	BufferSize  int           `yaml:"buffer_size"` // 仅用于UDP
+	Timeout     time.Duration `yaml:"timeout"`     // 仅用于UDP
 }
 
 // LoadConfig 从指定文件路径加载配置
 func LoadConfig(configPath string) (*Config, error) {
 	// 默认配置
 	config := &Config{
-		TCP: []TCPConfig{
+		Forwards: []ForwardConfig{
 			{
-				Name:        "baka!",
+				Name:        "baka",
 				Enabled:     true,
+				Protocol:    []string{"tcp", "udp"},
 				ListenIP:    "0.0.0.0",
-				ListenPorts: "8080-8085",
+				ListenPorts: []string{"8080-8085", "9000"},
 				TargetIP:    "::1",
-				TargetPorts: "9080-9085",
-			},
-		},
-		UDP: []UDPConfig{
-			{
-				Name:        "baka!",
-				Enabled:     true,
-				ListenIP:    "0.0.0.0",
-				ListenPorts: "8080-8085",
-				TargetIP:    "::1",
-				TargetPorts: "9080-9085",
+				TargetPorts: []string{"9080-9085", "8000"},
 				BufferSize:  4096,
 				Timeout:     3 * time.Minute,
 			},
@@ -117,42 +98,26 @@ func LoadConfig(configPath string) (*Config, error) {
 // SaveDefaultConfig 保存默认配置到文件
 func SaveDefaultConfig(filePath string) error {
 	config := &Config{
-		TCP: []TCPConfig{
+		Forwards: []ForwardConfig{
 			{
-				Name:        "baka!",
+				Name:        "baka",
 				Enabled:     true,
+				Protocol:    []string{"tcp", "udp"},
 				ListenIP:    "0.0.0.0",
-				ListenPorts: "8080-8085",
+				ListenPorts: []string{"8080-8085", "9000"},
 				TargetIP:    "::1",
-				TargetPorts: "9080-9085",
-			},
-			{
-				Name:        "zako!",
-				Enabled:     false,
-				ListenIP:    "0.0.0.0",
-				ListenPorts: "8090,8091,8092",
-				TargetIP:    "::1",
-				TargetPorts: "9090,9091,9092",
-			},
-		},
-		UDP: []UDPConfig{
-			{
-				Name:        "baka!",
-				Enabled:     true,
-				ListenIP:    "0.0.0.0",
-				ListenPorts: "8080-8085",
-				TargetIP:    "::1",
-				TargetPorts: "9080-9085",
+				TargetPorts: []string{"9080-9085", "8000"},
 				BufferSize:  4096,
 				Timeout:     3 * time.Minute,
 			},
 			{
-				Name:        "zako!",
+				Name:        "zako",
 				Enabled:     false,
+				Protocol:    []string{"tcp", "udp"},
 				ListenIP:    "0.0.0.0",
-				ListenPorts: "8090,8091,8092",
+				ListenPorts: []string{"8090", "8091", "8092"},
 				TargetIP:    "::1",
-				TargetPorts: "9090,9091,9092",
+				TargetPorts: []string{"9090", "9091", "9092"},
 				BufferSize:  4096,
 				Timeout:     3 * time.Minute,
 			},

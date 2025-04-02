@@ -33,7 +33,7 @@ func (p *Proxy) Start(ctx context.Context) error {
 	}
 	defer listener.Close()
 
-	log.Printf("[%s]TCP转发已启动: %s -> %s\n", p.proxyID, p.listenAddr, p.targetAddr)
+	log.Printf("[%s] TCP转发已启动: %s -> %s\n", p.proxyID, p.listenAddr, p.targetAddr)
 
 	go func() {
 		<-ctx.Done()
@@ -47,7 +47,7 @@ func (p *Proxy) Start(ctx context.Context) error {
 			case <-ctx.Done():
 				return nil
 			default:
-				log.Printf("[%s]TCP接受连接错误: %v", p.proxyID, err)
+				log.Printf("[%s] TCP接受连接错误: %v", p.proxyID, err)
 				continue
 			}
 		}
@@ -66,7 +66,7 @@ func (p *Proxy) handleConnection(ctx context.Context, clientConn net.Conn) {
 	}
 	defer targetConn.Close()
 
-	log.Printf("[%s]TCP转发: %s -> %s", p.proxyID, clientConn.RemoteAddr(), p.targetAddr)
+	log.Printf("[%s] TCP转发: %s -> %s", p.proxyID, clientConn.RemoteAddr(), p.targetAddr)
 
 	// 创建一个新的上下文，在连接关闭时取消
 	connCtx, cancel := context.WithCancel(ctx)
@@ -81,7 +81,7 @@ func (p *Proxy) handleConnection(ctx context.Context, clientConn net.Conn) {
 		defer cancel() // 任一方向出错都会取消整个连接
 		if _, err := io.Copy(targetConn, clientConn); err != nil {
 			if !isClosedConnError(err) {
-				log.Printf("[%s]TCP客户端->目标错误: %v", p.proxyID, err)
+				log.Printf("[%s] TCP客户端->目标错误: %v", p.proxyID, err)
 			}
 		}
 	}()
@@ -92,7 +92,7 @@ func (p *Proxy) handleConnection(ctx context.Context, clientConn net.Conn) {
 		defer cancel() // 任一方向出错都会取消整个连接
 		if _, err := io.Copy(clientConn, targetConn); err != nil {
 			if !isClosedConnError(err) {
-				log.Printf("[%s]TCP目标->客户端错误: %v", p.proxyID, err)
+				log.Printf("[%s] TCP目标->客户端错误: %v", p.proxyID, err)
 			}
 		}
 	}()

@@ -29,7 +29,22 @@ func init() {
 	flag.Parse()
 }
 
-// 解析端口范围/列表字符串，返回所有端口的切片
+// 解析端口列表，返回所有端口的切片
+func parseAllPorts(portsArray []string) ([]int, error) {
+	var allPorts []int
+
+	for _, portsStr := range portsArray {
+		ports, err := parsePorts(portsStr)
+		if err != nil {
+			return nil, err
+		}
+		allPorts = append(allPorts, ports...)
+	}
+
+	return allPorts, nil
+}
+
+// 解析单个端口范围/列表字符串，返回所有端口的切片
 func parsePorts(portsStr string) ([]int, error) {
 	var ports []int
 
@@ -101,112 +116,97 @@ func main() {
 
 	var wg sync.WaitGroup
 
-	// 启动TCP转发服务
-	for i, tcpCfg := range cfg.TCP {
-		if !tcpCfg.Enabled {
+	// 处理所有转发规则
+	for i, forwardCfg := range cfg.Forwards {
+		if !forwardCfg.Enabled {
 			continue
 		}
 
-		groupID := fmt.Sprintf("tcp-%d", i+1)
-		ruleName := tcpCfg.Name
+		ruleName := forwardCfg.Name
 		if ruleName == "" {
-			ruleName = groupID
+			ruleName = fmt.Sprintf("forward-%d", i+1)
 		}
 
-		listenPorts, err := parsePorts(tcpCfg.ListenPorts)
+		listenPorts, err := parseAllPorts(forwardCfg.ListenPorts)
 		if err != nil {
-			log.Printf("TCP配置[%s]监听端口解析错误: %v", ruleName, err)
+			log.Printf("配置[%s]监听端口解析错误: %v", ruleName, err)
 			continue
 		}
 
-		targetPorts, err := parsePorts(tcpCfg.TargetPorts)
+		targetPorts, err := parseAllPorts(forwardCfg.TargetPorts)
 		if err != nil {
-			log.Printf("TCP配置[%s]目标端口解析错误: %v", ruleName, err)
+			log.Printf("配置[%s]目标端口解析错误: %v", ruleName, err)
 			continue
 		}
 
 		// 检查端口数量是否匹配
 		if len(listenPorts) != len(targetPorts) {
-			log.Printf("TCP配置[%s]错误: 监听端口数量(%d)与目标端口数量(%d)不匹配",
+			log.Printf("配置[%s]错误: 监听端口数量(%d)与目标端口数量(%d)不匹配",
 				ruleName, len(listenPorts), len(targetPorts))
 			continue
 		}
 
-		// 为每对端口创建一个代理
-		for j := 0; j < len(listenPorts); j++ {
-			wg.Add(1)
-			listenAddr := fmt.Sprintf("%s:%d", tcpCfg.ListenIP, listenPorts[j])
-			targetAddr := fmt.Sprintf("%s:%d", tcpCfg.TargetIP, targetPorts[j])
-			proxyID := fmt.Sprintf("%s-p%d", ruleName, j+1)
+		// 如果协议列表为空，默认使用TCP
+		if len(forwardCfg.Protocol) == 0 {
+			forwardCfg.Protocol = []string{"tcp"}
+		}
 
-			go func(listenAddr, targetAddr, proxyID string) {
-				defer wg.Done()
-				tcpProxy := tcp.NewProxy(proxyID, listenAddr, targetAddr)
-				if err := tcpProxy.Start(ctx); err != nil {
-					log.Printf("TCP代理[%s]错误: %v", proxyID, err)
+		// 循环处理每个协议
+		for _, protocol := range forwardCfg.Protocol {
+			protocol = strings.ToLower(strings.TrimSpace(protocol))
+
+			// 根据协议类型创建对应的转发代理
+			switch protocol {
+			case "tcp":
+				// 为每对端口创建一个TCP代理
+				for j := 0; j < len(listenPorts); j++ {
+					wg.Add(1)
+					listenAddr := fmt.Sprintf("%s:%d", forwardCfg.ListenIP, listenPorts[j])
+					targetAddr := fmt.Sprintf("%s:%d", forwardCfg.TargetIP, targetPorts[j])
+					proxyID := fmt.Sprintf("%s-tcp-p%d", ruleName, j+1)
+
+					go func(listenAddr, targetAddr, proxyID string) {
+						defer wg.Done()
+						tcpProxy := tcp.NewProxy(proxyID, listenAddr, targetAddr)
+						if err := tcpProxy.Start(ctx); err != nil {
+							log.Printf("TCP代理[%s]错误: %v", proxyID, err)
+						}
+					}(listenAddr, targetAddr, proxyID)
 				}
-			}(listenAddr, targetAddr, proxyID)
-		}
 
-		log.Printf("已启动TCP端口组[%s]: %s:%s -> %s:%s, 共%d个端口对",
-			ruleName, tcpCfg.ListenIP, tcpCfg.ListenPorts, tcpCfg.TargetIP, tcpCfg.TargetPorts, len(listenPorts))
-	}
+				log.Printf("已启动TCP端口组[%s]: %s:%v -> %s:%v, 共%d个端口对",
+					ruleName, forwardCfg.ListenIP, forwardCfg.ListenPorts, forwardCfg.TargetIP, forwardCfg.TargetPorts, len(listenPorts))
 
-	// 启动UDP转发服务
-	for i, udpCfg := range cfg.UDP {
-		if !udpCfg.Enabled {
-			continue
-		}
+			case "udp":
+				// 为每对端口创建一个UDP代理
+				for j := 0; j < len(listenPorts); j++ {
+					wg.Add(1)
+					listenAddr := fmt.Sprintf("%s:%d", forwardCfg.ListenIP, listenPorts[j])
+					targetAddr := fmt.Sprintf("%s:%d", forwardCfg.TargetIP, targetPorts[j])
+					proxyID := fmt.Sprintf("%s-udp-p%d", ruleName, j+1)
 
-		groupID := fmt.Sprintf("udp-%d", i+1)
-		ruleName := udpCfg.Name
-		if ruleName == "" {
-			ruleName = groupID
-		}
-
-		listenPorts, err := parsePorts(udpCfg.ListenPorts)
-		if err != nil {
-			log.Printf("UDP配置[%s]监听端口解析错误: %v", ruleName, err)
-			continue
-		}
-
-		targetPorts, err := parsePorts(udpCfg.TargetPorts)
-		if err != nil {
-			log.Printf("UDP配置[%s]目标端口解析错误: %v", ruleName, err)
-			continue
-		}
-
-		// 检查端口数量是否匹配
-		if len(listenPorts) != len(targetPorts) {
-			log.Printf("UDP配置[%s]错误: 监听端口数量(%d)与目标端口数量(%d)不匹配",
-				ruleName, len(listenPorts), len(targetPorts))
-			continue
-		}
-
-		// 为每对端口创建一个代理
-		for j := 0; j < len(listenPorts); j++ {
-			wg.Add(1)
-			listenAddr := fmt.Sprintf("%s:%d", udpCfg.ListenIP, listenPorts[j])
-			targetAddr := fmt.Sprintf("%s:%d", udpCfg.TargetIP, targetPorts[j])
-			proxyID := fmt.Sprintf("%s-p%d", ruleName, j+1)
-
-			go func(listenAddr, targetAddr, proxyID string, bufferSize int, timeout time.Duration) {
-				defer wg.Done()
-				udpProxy := udp.NewProxy(
-					proxyID,
-					listenAddr,
-					targetAddr,
-					bufferSize,
-					timeout,
-				)
-				if err := udpProxy.Start(ctx); err != nil {
-					log.Printf("UDP代理[%s]错误: %v", proxyID, err)
+					go func(listenAddr, targetAddr, proxyID string, bufferSize int, timeout time.Duration) {
+						defer wg.Done()
+						udpProxy := udp.NewProxy(
+							proxyID,
+							listenAddr,
+							targetAddr,
+							bufferSize,
+							timeout,
+						)
+						if err := udpProxy.Start(ctx); err != nil {
+							log.Printf("UDP代理[%s]错误: %v", proxyID, err)
+						}
+					}(listenAddr, targetAddr, proxyID, forwardCfg.BufferSize, forwardCfg.Timeout)
 				}
-			}(listenAddr, targetAddr, proxyID, udpCfg.BufferSize, udpCfg.Timeout)
-		}
 
-		log.Printf("已启动UDP端口组[%s]: %s:%s -> %s:%s, 共%d个端口对",
-			ruleName, udpCfg.ListenIP, udpCfg.ListenPorts, udpCfg.TargetIP, udpCfg.TargetPorts, len(listenPorts))
+				log.Printf("已启动UDP端口组[%s]: %s:%v -> %s:%v, 共%d个端口对",
+					ruleName, forwardCfg.ListenIP, forwardCfg.ListenPorts, forwardCfg.TargetIP, forwardCfg.TargetPorts, len(listenPorts))
+
+			default:
+				log.Printf("配置[%s]错误: 不支持的协议类型 '%s'", ruleName, protocol)
+			}
+		}
 	}
 
 	// 优雅退出
