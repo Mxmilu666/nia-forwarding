@@ -108,23 +108,27 @@ func main() {
 		}
 
 		groupID := fmt.Sprintf("tcp-%d", i+1)
+		ruleName := tcpCfg.Name
+		if ruleName == "" {
+			ruleName = groupID
+		}
 
 		listenPorts, err := parsePorts(tcpCfg.ListenPorts)
 		if err != nil {
-			log.Printf("TCP配置[%s]监听端口解析错误: %v", groupID, err)
+			log.Printf("TCP配置[%s]监听端口解析错误: %v", ruleName, err)
 			continue
 		}
 
 		targetPorts, err := parsePorts(tcpCfg.TargetPorts)
 		if err != nil {
-			log.Printf("TCP配置[%s]目标端口解析错误: %v", groupID, err)
+			log.Printf("TCP配置[%s]目标端口解析错误: %v", ruleName, err)
 			continue
 		}
 
 		// 检查端口数量是否匹配
 		if len(listenPorts) != len(targetPorts) {
 			log.Printf("TCP配置[%s]错误: 监听端口数量(%d)与目标端口数量(%d)不匹配",
-				groupID, len(listenPorts), len(targetPorts))
+				ruleName, len(listenPorts), len(targetPorts))
 			continue
 		}
 
@@ -133,7 +137,7 @@ func main() {
 			wg.Add(1)
 			listenAddr := fmt.Sprintf("%s:%d", tcpCfg.ListenIP, listenPorts[j])
 			targetAddr := fmt.Sprintf("%s:%d", tcpCfg.TargetIP, targetPorts[j])
-			proxyID := fmt.Sprintf("%s-p%d", groupID, j+1)
+			proxyID := fmt.Sprintf("%s-p%d", ruleName, j+1)
 
 			go func(listenAddr, targetAddr, proxyID string) {
 				defer wg.Done()
@@ -145,7 +149,7 @@ func main() {
 		}
 
 		log.Printf("已启动TCP端口组[%s]: %s:%s -> %s:%s, 共%d个端口对",
-			groupID, tcpCfg.ListenIP, tcpCfg.ListenPorts, tcpCfg.TargetIP, tcpCfg.TargetPorts, len(listenPorts))
+			ruleName, tcpCfg.ListenIP, tcpCfg.ListenPorts, tcpCfg.TargetIP, tcpCfg.TargetPorts, len(listenPorts))
 	}
 
 	// 启动UDP转发服务
@@ -155,23 +159,27 @@ func main() {
 		}
 
 		groupID := fmt.Sprintf("udp-%d", i+1)
+		ruleName := udpCfg.Name
+		if ruleName == "" {
+			ruleName = groupID
+		}
 
 		listenPorts, err := parsePorts(udpCfg.ListenPorts)
 		if err != nil {
-			log.Printf("UDP配置[%s]监听端口解析错误: %v", groupID, err)
+			log.Printf("UDP配置[%s]监听端口解析错误: %v", ruleName, err)
 			continue
 		}
 
 		targetPorts, err := parsePorts(udpCfg.TargetPorts)
 		if err != nil {
-			log.Printf("UDP配置[%s]目标端口解析错误: %v", groupID, err)
+			log.Printf("UDP配置[%s]目标端口解析错误: %v", ruleName, err)
 			continue
 		}
 
 		// 检查端口数量是否匹配
 		if len(listenPorts) != len(targetPorts) {
 			log.Printf("UDP配置[%s]错误: 监听端口数量(%d)与目标端口数量(%d)不匹配",
-				groupID, len(listenPorts), len(targetPorts))
+				ruleName, len(listenPorts), len(targetPorts))
 			continue
 		}
 
@@ -180,7 +188,7 @@ func main() {
 			wg.Add(1)
 			listenAddr := fmt.Sprintf("%s:%d", udpCfg.ListenIP, listenPorts[j])
 			targetAddr := fmt.Sprintf("%s:%d", udpCfg.TargetIP, targetPorts[j])
-			proxyID := fmt.Sprintf("%s-p%d", groupID, j+1)
+			proxyID := fmt.Sprintf("%s-p%d", ruleName, j+1)
 
 			go func(listenAddr, targetAddr, proxyID string, bufferSize int, timeout time.Duration) {
 				defer wg.Done()
@@ -198,7 +206,7 @@ func main() {
 		}
 
 		log.Printf("已启动UDP端口组[%s]: %s:%s -> %s:%s, 共%d个端口对",
-			groupID, udpCfg.ListenIP, udpCfg.ListenPorts, udpCfg.TargetIP, udpCfg.TargetPorts, len(listenPorts))
+			ruleName, udpCfg.ListenIP, udpCfg.ListenPorts, udpCfg.TargetIP, udpCfg.TargetPorts, len(listenPorts))
 	}
 
 	// 优雅退出

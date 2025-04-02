@@ -21,20 +21,22 @@ type Config struct {
 
 // TCPConfig TCP代理的配置
 type TCPConfig struct {
+	Name        string `yaml:"name"`
 	Enabled     bool   `yaml:"enabled"`
-	ListenIP    string `yaml:"listen_ip"`    // 修改为监听IP
-	ListenPorts string `yaml:"listen_ports"` // 端口范围，例如 "8080-8085" 或 "8080,8081,8082"
-	TargetIP    string `yaml:"target_ip"`    // 修改为目标IP
-	TargetPorts string `yaml:"target_ports"` // 目标端口范围
+	ListenIP    string `yaml:"listen_ip"`
+	ListenPorts string `yaml:"listen_ports"`
+	TargetIP    string `yaml:"target_ip"`
+	TargetPorts string `yaml:"target_ports"`
 }
 
 // UDPConfig UDP代理的配置
 type UDPConfig struct {
+	Name        string        `yaml:"name"`
 	Enabled     bool          `yaml:"enabled"`
-	ListenIP    string        `yaml:"listen_ip"`    // 修改为监听IP
-	ListenPorts string        `yaml:"listen_ports"` // 端口范围
-	TargetIP    string        `yaml:"target_ip"`    // 修改为目标IP
-	TargetPorts string        `yaml:"target_ports"` // 目标端口范围
+	ListenIP    string        `yaml:"listen_ip"`
+	ListenPorts string        `yaml:"listen_ports"`
+	TargetIP    string        `yaml:"target_ip"`
+	TargetPorts string        `yaml:"target_ports"`
 	BufferSize  int           `yaml:"buffer_size"`
 	Timeout     time.Duration `yaml:"timeout"`
 }
@@ -45,6 +47,7 @@ func LoadConfig(configPath string) (*Config, error) {
 	config := &Config{
 		TCP: []TCPConfig{
 			{
+				Name:        "baka!",
 				Enabled:     true,
 				ListenIP:    "0.0.0.0",
 				ListenPorts: "8080-8085",
@@ -54,6 +57,7 @@ func LoadConfig(configPath string) (*Config, error) {
 		},
 		UDP: []UDPConfig{
 			{
+				Name:        "baka!",
 				Enabled:     true,
 				ListenIP:    "0.0.0.0",
 				ListenPorts: "8080-8085",
@@ -115,22 +119,25 @@ func SaveDefaultConfig(filePath string) error {
 	config := &Config{
 		TCP: []TCPConfig{
 			{
+				Name:        "baka!",
 				Enabled:     true,
 				ListenIP:    "0.0.0.0",
-				ListenPorts: "8080-8085", // 端口范围示例
+				ListenPorts: "8080-8085",
 				TargetIP:    "::1",
 				TargetPorts: "9080-9085",
 			},
 			{
+				Name:        "zako!",
 				Enabled:     false,
 				ListenIP:    "0.0.0.0",
-				ListenPorts: "8090,8091,8092", // 逗号分隔的端口列表示例
+				ListenPorts: "8090,8091,8092",
 				TargetIP:    "::1",
 				TargetPorts: "9090,9091,9092",
 			},
 		},
 		UDP: []UDPConfig{
 			{
+				Name:        "baka!",
 				Enabled:     true,
 				ListenIP:    "0.0.0.0",
 				ListenPorts: "8080-8085",
@@ -140,6 +147,7 @@ func SaveDefaultConfig(filePath string) error {
 				Timeout:     3 * time.Minute,
 			},
 			{
+				Name:        "zako!",
 				Enabled:     false,
 				ListenIP:    "0.0.0.0",
 				ListenPorts: "8090,8091,8092",
